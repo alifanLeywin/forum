@@ -4,276 +4,134 @@ require_once 'config/database.php';
 // Get all boards
 $stmt = $pdo->query('SELECT * FROM boards ORDER BY board_code');
 $boards = $stmt->fetchAll();
-?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>/g/ - Forum Gelo</title>
-    <style>
-        body {
-            font-family: arial,helvetica,sans-serif;
-            font-size: 10pt;
-            background: #EEF2FF;
-            color: #000000;
-            margin: 0;
-            padding: 8px;
-        }
-
-        .header {
-            text-align: center;
-            color: #AF0A0F;
-            font-size: 24px;
-            font-weight: bold;
-            font-family: Tahoma,sans-serif;
-            letter-spacing: -2px;
-            margin-top: 8px;
-            margin-bottom: 16px;
-        }
-
-        .header a {
-            color: #34345C;
-            text-decoration: none;
-        }
-
-        .header a:hover {
-            color: #ff0000;
-        }
-
-        .boards {
-            background: #D6DAF0;
-            border: 1px solid #B7C5D9;
-            border-radius: 3px;
-            color: #34345C;
-            padding: 16px;
-            margin: 8px auto;
-            max-width: 800px;
-        }
-
-        .boards h2 {
-            color: #34345C;
-            font-size: 12pt;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #B7C5D9;
-            padding-bottom: 4px;
-        }
-
-        .board-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .board {
-            background: #EEF2FF;
-            border: 1px solid #B7C5D9;
-            border-radius: 3px;
-            padding: 6px 12px;
-            width: calc(25% - 6px);
-        }
-
-        .board:hover {
-            background: #D6DAF0;
-        }
-
-        .board a {
-            color: #34345C;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .board a:hover {
-            color: #ff0000;
-        }
-
-        .board-description {
-            color: #707070;
-            font-size: 9pt;
-            margin-top: 2px;
-        }
-
-        .stats {
-            background: #D6DAF0;
-            border: 1px solid #B7C5D9;
-            border-radius: 3px;
-            margin: 8px auto;
-            padding: 8px;
-            max-width: 800px;
-            font-size: 9pt;
-            color: #707070;
-        }
-
-        .stat-list {
-            display: flex;
-            justify-content: space-around;
-            text-align: center;
-        }
-
-        .stat-item {
-            padding: 4px 8px;
-        }
-
-        .stat-item b {
-            color: #34345C;
-            display: block;
-            font-size: 14px;
-        }
-
-        .recent-posts {
-            background: #D6DAF0;
-            border: 1px solid #B7C5D9;
-            border-radius: 3px;
-            margin: 8px auto;
-            padding: 8px;
-            max-width: 800px;
-        }
-
-        .recent-posts h2 {
-            color: #34345C;
-            font-size: 11pt;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #B7C5D9;
-            padding-bottom: 4px;
-        }
-
-        .post-item {
-            background: #EEF2FF;
-            border: 1px solid #B7C5D9;
-            border-radius: 3px;
-            padding: 6px;
-            margin-bottom: 4px;
-            font-size: 9pt;
-        }
-
-        .post-item:hover {
-            background: #D6DAF0;
-        }
-
-        .post-board {
-            color: #34345C;
-            font-weight: bold;
-        }
-
-        .post-date {
-            color: #707070;
-            font-size: 9pt;
-        }
-
-        .footer {
-            text-align: center;
-            font-size: 9pt;
-            color: #707070;
-            margin-top: 16px;
-            padding: 8px;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>[Forum Gelo]</h1>
-    </div>
-
-    <div class="stats">
-        <div class="stat-list">
-            <div class="stat-item">
-                <b><?php
-                    $stmt = $pdo->query('SELECT COUNT(*) as count FROM (SELECT DISTINCT ip_address FROM posts UNION SELECT DISTINCT ip_address FROM threads) as users');
-                    echo $stmt->fetch()['count'];
-                ?></b>
-                User(s) Online
-            </div>
-            <div class="stat-item">
-                <b><?php
-                    $stmt = $pdo->query('SELECT COUNT(*) as count FROM posts');
-                    echo $stmt->fetch()['count'];
-                ?></b>
-                Posts
-            </div>
-            <div class="stat-item">
-                <b><?php
-                    $stmt = $pdo->query('SELECT COUNT(*) as count FROM threads');
-                    echo $stmt->fetch()['count'];
-                ?></b>
-                Threads
-            </div>
-        </div>
-    </div>
-
-    <div class="boards">
-        <h2>Boards</h2>
-        <div class="board-list">
-            <?php foreach ($boards as $board): ?>
-            <div class="board">
-                <a href="board.php?board=<?= htmlspecialchars($board['board_code']) ?>">
-                    /<?= htmlspecialchars($board['board_code']) ?>/ - <?= htmlspecialchars($board['board_name']) ?>
-                </a>
-                <div class="board-description">
-                    <?= htmlspecialchars($board['description']) ?>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-    </div>
-
-    <div class="recent-posts">
-        <h2>Recent Posts</h2>
-        <?php
-        $stmt = $pdo->query('
-            SELECT t.*, b.board_code, b.board_name 
+// Get recent threads (latest 8 for example)
+$stmt = $pdo->query('SELECT t.*, b.board_code, b.board_name 
             FROM threads t 
             JOIN boards b ON t.board_id = b.id 
             ORDER BY t.created_at DESC 
-            LIMIT 5
-        ');
-        $recent_threads = $stmt->fetchAll();
-        
-        foreach ($recent_threads as $thread):
-        ?>
-        <div class="post-item">
-            <span class="post-board">/<?= htmlspecialchars($thread['board_code']) ?>/</span> - 
+            LIMIT 5');
+$recent_threads = $stmt->fetchAll();
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<!-- HEAD ORIGINAL TIDAK BERUBAH -->
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="keywords" content="imageboard,forum,anonymous,chan" />
+<meta name="description" content="Simple image-based bulletin board where anyone can post comments and share images anonymously." />
+<title>4chan</title>
+<link rel="stylesheet" type="text/css" href="./css/style.css" />
+<script src="./js/preload.js" defer></script>
+</head>
+<body>
+<div id="doc">
+  <div id="hd">
+    <div id="logo-fp">
+      <a href="/" title="Home"><img alt="4chan" src="./assets/logo.png" height="200"></a>
+    </div>
+  </div>
+
+<!-- BOARDS SECTION -->
+<div class="box-outer top-box" id="boards">
+  <div class="box-inner">
+    <div class="boxbar">
+      <h2>Boards</h2>
+    </div>
+    <div class="boxcontent">
+        <?php foreach ($boards as $board): ?>
+            <div class="column">
+              <div class="board">
+                <ul>
+                  <li><a href="board.php?board=<?= htmlspecialchars($board['board_code']) ?>">
+                    /<?= htmlspecialchars($board['board_code']) ?>/ - <?= htmlspecialchars($board['board_name']) ?>
+                  </a></li>
+                </ul>
+              </div>
+            </div>
+        <?php endforeach; ?>
+        <br class="clear-bug"/>
+    </div>
+  </div>
+</div>
+
+<!-- RECENT THREADS SECTION -->
+<div class="box-outer top-box" id="recent-threads">
+  <div class="box-inner">
+    <div class="boxbar">
+      <h2>Recent Threads</h2>
+    </div>
+    <div class="boxcontent">
+      <div id="c-threads">
+        <?php foreach ($recent_threads as $thread): ?>
+          <div class="c-thread">
+            <div class="c-board">/<?= htmlspecialchars($thread['board_code']) ?>/</div>
             <a href="thread.php?id=<?= $thread['id'] ?>" style="color: #34345C; text-decoration: none;">
                 <?= htmlspecialchars($thread['subject'] ?: substr($thread['content'], 0, 100) . '...') ?>
             </a>
-            <span class="post-date"><?= timeAgo(strtotime($thread['created_at'])) ?></span>
-        </div>
+              <?php if (!empty($thread['thumbnail'])): ?>
+                <img class="c-thumb" src="<?= htmlspecialchars($thread['thumbnail']) ?>" width="150" height="150" />
+              <?php endif; ?>
+            </a>
+            <!-- <div class="c-teaser">
+              <b><?= htmlspecialchars($thread['title']) ?></b>
+            </div> -->
+          </div>
         <?php endforeach; ?>
+      </div>
     </div>
+  </div>
+</div>
 
-    <div class="footer">
-        <p>[<?= date('Y') ?>] Forum Gelo - All trademarks and copyrights belong to their respective owners.</p>
+<!-- STATS SECTION -->
+<div class="box-outer top-box" id="site-stats">
+  <div class="box-inner">
+    <div class="boxbar"><h2>Stats</h2></div>
+    <div class="boxcontent">
+      <div class="stat-cell"><b>Total Posts:</b> <?php
+          $stmt = $pdo->query('SELECT COUNT(*) as count FROM posts');
+          echo $stmt->fetch()['count'];
+      ?></div>
+      <div class="stat-cell"><b>Current Users:</b> <?php
+          $stmt = $pdo->query('SELECT COUNT(*) as count FROM (
+              SELECT DISTINCT ip_address FROM posts
+              UNION
+              SELECT DISTINCT ip_address FROM threads
+          ) as users');
+          echo $stmt->fetch()['count'];
+      ?></div>
+      <div class="stat-cell"><b>Active Content:</b> <?php
+          $stmt = $pdo->query('SELECT COUNT(*) as count FROM threads');
+          echo $stmt->fetch()['count'];
+      ?></div>
     </div>
-    </div>
+  </div>
+</div>
 
-    <script>
-        // Animasi sederhana untuk stat cards
-        document.querySelectorAll('.stat-card').forEach(card => {
-            card.addEventListener('mouseenter', () => {
-                card.style.transform = 'translateY(-10px)';
-            });
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = 'translateY(0)';
-            });
-        });
-    </script>
+<!-- FOOTER -->
+<div id="ft">
+  <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="/4channews.php">News</a></li>
+    <li><a href="http://blog.4chan.org/">Blog</a></li>
+    <li><a href="/faq">FAQ</a></li>
+    <li><a href="/rules">Rules</a></li>
+    <li><a href="/pass">Support</a></li>
+    <li><a href="/advertise">Advertise</a></li>
+    <li><a href="/press">Press</a></li>
+    <li><a href="/japanese">日本語</a></li>
+  </ul>
+  <br class="clear-bug" />
+  <div id="copyright">
+    <a href="/faq#what4chan">About</a> &bull;
+    <a href="/feedback">Feedback</a> &bull;
+    <a href="/legal">Legal</a> &bull;
+    <a href="/contact">Contact</a><br /><br />
+    Copyright &copy; 2025 alipan and fauzy
+  </div>
+</div>
+
 </body>
 </html>
-
-<?php
-function timeAgo($timestamp) {
-    $difference = time() - $timestamp;
-    
-    if ($difference < 60) {
-        return "Baru saja";
-    } elseif ($difference < 3600) {
-        return floor($difference/60) . " menit yang lalu";
-    } elseif ($difference < 86400) {
-        return floor($difference/3600) . " jam yang lalu";
-    } elseif ($difference < 2592000) {
-        return floor($difference/86400) . " hari yang lalu";
-    } else {
-        return date('j M Y', $timestamp);
-    }
-}
-?>
