@@ -1,8 +1,8 @@
 <?php
-$host = 'localhost:8889';  // Menambahkan port 8889 untuk MAMP
+$host = 'localhost';  // Menambahkan port 8889 untuk MAMP
 $db   = '4chan_db';
 $user = 'root';
-$pass = 'root';
+$pass = 'halonamasayafauzy';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
